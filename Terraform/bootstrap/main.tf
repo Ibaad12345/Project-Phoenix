@@ -1,3 +1,15 @@
+terraform {
+  required_version = ">= 1.0.0"
+
+  backend "s3" {
+    bucket         = "phoenix-dev-tfstate-111328751183"
+    key            = "dev/terraform.tfstate"
+    region         = "eu-west-2"
+    dynamodb_table = "phoenix-dev-tfstate-locks" # Match your bootstrap DynamoDB table name
+    encrypt        = true
+  }
+}
+
 # Provider Setup
 provider "aws" {
   region = "eu-west-2"
