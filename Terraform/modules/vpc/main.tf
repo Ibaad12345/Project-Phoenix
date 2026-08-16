@@ -5,7 +5,7 @@ resource "aws_vpc" "main" {
   enable_dns_support   = true
 
   tags = {
-    Name = "phoenix-${var.environment}-vpc"
+    Name        = "phoenix-${var.environment}-vpc"
     Environment = var.environment
   }
 }
@@ -15,7 +15,7 @@ resource "aws_internet_gateway" "gw" {
   vpc_id = aws_vpc.main.id
 
   tags = {
-    Name = "phoenix-${var.environment}-igw"
+    Name        = "phoenix-${var.environment}-igw"
     Environment = var.environment
   }
 }
@@ -29,7 +29,7 @@ resource "aws_subnet" "public" {
   map_public_ip_on_launch = true
 
   tags = {
-    Name = "phoenix-${var.environment}-public-subnet-${count.index + 1}"
+    Name        = "phoenix-${var.environment}-public-subnet-${count.index + 1}"
     Environment = var.environment
   }
 }
@@ -42,7 +42,7 @@ resource "aws_subnet" "private" {
   availability_zone = var.availability_zones[count.index]
 
   tags = {
-    Name = "phoenix-${var.environment}-private-subnet-${count.index + 1}"
+    Name        = "phoenix-${var.environment}-private-subnet-${count.index + 1}"
     Environment = var.environment
   }
 }
@@ -53,7 +53,7 @@ resource "aws_eip" "nat" {
   depends_on = [aws_internet_gateway.gw]
 
   tags = {
-    Name = "phoenix-${var.environment}-nat-eip"
+    Name        = "phoenix-${var.environment}-nat-eip"
     Environment = var.environment
   }
 }
@@ -64,7 +64,7 @@ resource "aws_nat_gateway" "nat" {
   subnet_id     = aws_subnet.public[0].id
 
   tags = {
-    Name = "phoenix-${var.environment}-nat-gw"
+    Name        = "phoenix-${var.environment}-nat-gw"
     Environment = var.environment
   }
 
@@ -81,7 +81,7 @@ resource "aws_route_table" "public" {
   }
 
   tags = {
-    Name = "phoenix-${var.environment}-public-rt"
+    Name        = "phoenix-${var.environment}-public-rt"
     Environment = var.environment
   }
 }
@@ -96,7 +96,7 @@ resource "aws_route_table" "private" {
   }
 
   tags = {
-    Name = "phoenix-${var.environment}-private-rt"
+    Name        = "phoenix-${var.environment}-private-rt"
     Environment = var.environment
   }
 }
