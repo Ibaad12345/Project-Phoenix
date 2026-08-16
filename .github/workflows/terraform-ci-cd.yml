@@ -6,11 +6,14 @@ on:
       - main
     paths:
       - "Terraform/**"
+      - ".github/**"
   pull_request:
     branches:
       - main
     paths:
       - "Terraform/**"
+      - ".github/**"
+  workflow_dispatch:
 
 permissions:
   id-token: write
