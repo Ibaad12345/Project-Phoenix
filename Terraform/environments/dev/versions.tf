@@ -1,5 +1,5 @@
 terraform {
-  required_version = ">= 1.5.0"
+  required_version = ">= 1.2"
 
   required_providers {
     aws = {
@@ -10,7 +10,7 @@ terraform {
 
   backend "s3" {
     bucket         = "phoenix-dev-tfstate-111328751183"
-    key            = "dev/network/terraform.tfstate" # Notice the distinct path for dev state
+    key            = "dev/terraform.tfstate"
     region         = "eu-west-2"
     dynamodb_table = "phoenix-dev-tfstate-locks"
     encrypt        = true
@@ -19,12 +19,4 @@ terraform {
 
 provider "aws" {
   region = var.aws_region
-
-  default_tags {
-    tags = {
-      Project     = "Phoenix"
-      Environment = "dev"
-      ManagedBy   = "Terraform"
-    }
-  }
 }

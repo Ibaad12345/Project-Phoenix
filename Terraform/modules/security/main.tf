@@ -1,10 +1,9 @@
 # 1. Public Load Balancer Security Group
 resource "aws_security_group" "alb" {
-  name        = "phoenix-dev-alb-sg"
+  name        = "phoenix-${var.environment}-alb-sg"
   description = "Controls traffic to public Application Load Balancer"
-  vpc_id      = aws_vpc.main.id
+  vpc_id      = var.vpc_id
 
-  # Allow HTTP from anywhere
   ingress {
     description      = "Allow HTTP from internet"
     from_port        = 80
@@ -14,7 +13,6 @@ resource "aws_security_group" "alb" {
     ipv6_cidr_blocks = ["::/0"]
   }
 
-  # Allow HTTPS from anywhere
   ingress {
     description      = "Allow HTTPS from internet"
     from_port        = 443
@@ -24,7 +22,6 @@ resource "aws_security_group" "alb" {
     ipv6_cidr_blocks = ["::/0"]
   }
 
-  # Outbound rule to forward traffic to backend apps
   egress {
     description = "Allow all outbound traffic"
     from_port   = 0
@@ -34,18 +31,17 @@ resource "aws_security_group" "alb" {
   }
 
   tags = {
-    Name        = "phoenix-dev-alb-sg"
-    Environment = "dev"
+    Name        = "phoenix-${var.environment}-alb-sg"
+    Environment = var.environment
   }
 }
 
 # 2. Application Tier Security Group
 resource "aws_security_group" "app" {
-  name        = "phoenix-dev-app-sg"
+  name        = "phoenix-${var.environment}-app-sg"
   description = "Controls traffic to application instances"
-  vpc_id      = aws_vpc.main.id
+  vpc_id      = var.vpc_id
 
-  # Allow inbound traffic ONLY from the ALB Security Group
   ingress {
     description     = "Allow app traffic from ALB SG only"
     from_port       = var.container_port
@@ -63,18 +59,17 @@ resource "aws_security_group" "app" {
   }
 
   tags = {
-    Name        = "phoenix-dev-app-sg"
-    Environment = "dev"
+    Name        = "phoenix-${var.environment}-app-sg"
+    Environment = var.environment
   }
 }
 
 # 3. Database Tier Security Group
 resource "aws_security_group" "db" {
-  name        = "phoenix-dev-db-sg"
+  name        = "phoenix-${var.environment}-db-sg"
   description = "Controls traffic to RDS / Database tier"
-  vpc_id      = aws_vpc.main.id
+  vpc_id      = var.vpc_id
 
-  # Allow PostgreSQL traffic ONLY from the App Security Group
   ingress {
     description     = "Allow PostgreSQL access from App SG only"
     from_port       = 5432
@@ -83,7 +78,6 @@ resource "aws_security_group" "db" {
     security_groups = [aws_security_group.app.id]
   }
 
-  # Restrict DB outbound (Least Privilege)
   egress {
     description = "No direct outbound internet allowed"
     from_port   = 0
@@ -93,7 +87,7 @@ resource "aws_security_group" "db" {
   }
 
   tags = {
-    Name        = "phoenix-dev-db-sg"
-    Environment = "dev"
+    Name        = "phoenix-${var.environment}-db-sg"
+    Environment = var.environment
   }
 }

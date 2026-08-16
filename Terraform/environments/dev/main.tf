@@ -1,108 +1,46 @@
-# 1. VPC
-resource "aws_vpc" "main" {
-  cidr_block           = var.vpc_cidr
-  enable_dns_hostnames = true
-  enable_dns_support   = true
+# 1. Base VPC Networking Module
+module "vpc" {
+  source = "../../modules/vpc"
 
-  tags = {
-    Name = "phoenix-dev-vpc"
-  }
+  environment          = var.environment
+  vpc_cidr             = var.vpc_cidr
+  public_subnet_cidrs  = var.public_subnet_cidrs
+  private_subnet_cidrs = var.private_subnet_cidrs
+  availability_zones   = var.availability_zones
 }
 
-# 2. Internet Gateway (IGW)
-resource "aws_internet_gateway" "gw" {
-  vpc_id = aws_vpc.main.id
+# 2. Security Groups Module
+module "security" {
+  source = "../../modules/security"
 
-  tags = {
-    Name = "phoenix-dev-igw"
-  }
+  environment    = var.environment
+  vpc_id         = module.vpc.vpc_id
+  container_port = var.container_port
 }
 
-# 3. Public Subnets across 2 AZs
-resource "aws_subnet" "public" {
-  count                   = length(var.public_subnet_cidrs)
-  vpc_id                  = aws_vpc.main.id
-  cidr_block              = var.public_subnet_cidrs[count.index]
-  availability_zone       = var.availability_zones[count.index]
-  map_public_ip_on_launch = true
+# 3. RDS Database Module
+module "rds" {
+  source = "../../modules/rds"
 
-  tags = {
-    Name = "phoenix-dev-public-subnet-${count.index + 1}"
-  }
+  environment          = var.environment
+  private_subnet_ids   = module.vpc.private_subnet_ids
+  db_security_group_id = module.security.db_security_group_id
+  db_name              = var.db_name
+  db_username          = var.db_username
+  db_password          = var.db_password
 }
 
-# 4. Private Subnets across 2 AZs
-resource "aws_subnet" "private" {
-  count             = length(var.private_subnet_cidrs)
-  vpc_id            = aws_vpc.main.id
-  cidr_block        = var.private_subnet_cidrs[count.index]
-  availability_zone = var.availability_zones[count.index]
+# 4. ECS & Load Balancer Module
+module "ecs" {
+  source = "../../modules/ecs"
 
-  tags = {
-    Name = "phoenix-dev-private-subnet-${count.index + 1}"
-  }
-}
-
-# 5. Elastic IP for NAT Gateway
-resource "aws_eip" "nat" {
-  domain     = "vpc"
-  depends_on = [aws_internet_gateway.gw]
-
-  tags = {
-    Name = "phoenix-dev-nat-eip"
-  }
-}
-
-# 6. NAT Gateway (placed in the first public subnet)
-resource "aws_nat_gateway" "nat" {
-  allocation_id = aws_eip.nat.id
-  subnet_id     = aws_subnet.public[0].id
-
-  tags = {
-    Name = "phoenix-dev-nat-gw"
-  }
-
-  depends_on = [aws_internet_gateway.gw]
-}
-
-# 7. Route Table for Public Subnets (Routes 0.0.0.0/0 to IGW)
-resource "aws_route_table" "public" {
-  vpc_id = aws_vpc.main.id
-
-  route {
-    cidr_block = "0.0.0.0/0"
-    gateway_id = aws_internet_gateway.gw.id
-  }
-
-  tags = {
-    Name = "phoenix-dev-public-rt"
-  }
-}
-
-# 8. Route Table for Private Subnets (Routes 0.0.0.0/0 to NAT Gateway)
-resource "aws_route_table" "private" {
-  vpc_id = aws_vpc.main.id
-
-  route {
-    cidr_block     = "0.0.0.0/0"
-    nat_gateway_id = aws_nat_gateway.nat.id
-  }
-
-  tags = {
-    Name = "phoenix-dev-private-rt"
-  }
-}
-
-# 9. Associate Public Subnets with Public Route Table
-resource "aws_route_table_association" "public" {
-  count          = length(aws_subnet.public)
-  subnet_id      = aws_subnet.public[count.index].id
-  route_table_id = aws_route_table.public.id
-}
-
-# 10. Associate Private Subnets with Private Route Table
-resource "aws_route_table_association" "private" {
-  count          = length(aws_subnet.private)
-  subnet_id      = aws_subnet.private[count.index].id
-  route_table_id = aws_route_table.private.id
+  environment           = var.environment
+  vpc_id                = module.vpc.vpc_id
+  public_subnet_ids     = module.vpc.public_subnet_ids
+  private_subnet_ids    = module.vpc.private_subnet_ids
+  alb_security_group_id = module.security.alb_security_group_id
+  app_security_group_id = module.security.app_security_group_id
+  container_image       = var.container_image
+  container_port        = var.container_port
+  db_host               = module.rds.db_endpoint
 }
